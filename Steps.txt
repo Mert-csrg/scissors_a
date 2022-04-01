@@ -1,0 +1,35 @@
+
+
+gmx pdb2gmx -f Scissors.pdb -o scissors_protein.gro
+
+
+gmx editconf -f scissors_protein.gro -o scissors_box.gro -c -d 0.7 -bt cubic
+
+
+gmx solvate -cp scissors_box.gro -cs spc216.gro -o scissors_solv.gro -p topol.top
+
+
+gmx grompp -f ions.mdp -c scissors_solv.gro -p topol.top -o ions.tpr
+gmx genion -s ions.tpr -o scissors_solv_ions.gro -p topol.top -pname NA -nname CL -neutral
+
+
+gmx grompp -f minim.mdp -c scissors_solv_ions.gro -p topol.top -o em.tpr
+gmx mdrun -v -deffnm em
+gmx energy -f em.edr -o potential.xvg
+
+
+gmx grompp -f nvt.mdp -c em.gro -r em.gro -p topol.top -o nvt.tpr
+gmx mdrun -deffnm nvt -v
+gmx energy -f nvt.edr -o temperature.xvg
+
+
+gmx grompp -f npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p topol.top -o npt.tpr
+gmx mdrun -deffnm npt -v
+gmx energy -f npt.edr -o pressure.xvg
+gmx energy -f npt.edr -o density.xvg
+
+gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol.top -o md_0_1.tpr
+gmx mdrun -deffnm md_0_1 -v
+
+
+gmx trjconv -f md_0_1.xtc -pbc mol -center -s md_0_1.tpr -o md_0_1_centered.xtc
